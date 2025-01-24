@@ -20,7 +20,6 @@ required_libraries = [
     "pandas",
     "simplekml",
     "math",
-    "subprocess.run"
     "numpy",
     "xml.etree.ElementTree"
     ]
@@ -29,15 +28,20 @@ required_libraries = [
 
 revisarLibrerias(required_libraries)
 
+
 import pandas as pd
 from simplekml import Kml
-import xml.etree.ElementTree as ET
-from zipfile import ZipFile
-import subprocess
 import sys
-import shutil
 import math
 import numpy as np
+from xml.etree import ElementTree as ET
+import zipfile
+
+if len(sys.argv) > 1:
+    parametro = sys.argv[1]  # Primer argumento después del nombre del script
+    print(f"Parámetro recibido: {parametro}")
+else:
+    print("No se proporcionaron parámetros. Usa: python script.py <parametro>")
 
 def generate_route_from_excel(kml, input_excel_path, hoja_excel, route_points):
     # Leer el archivo Excel
@@ -138,8 +142,6 @@ def generate_route_points(nombreTramo, inicioTramoCompletado, finTramoCompletado
     step = 1 if inicioTramoCompletado <= finTramoCompletado else -1
     return [f"{nombreTramo}-{str(i).zfill(4)}" for i in range(inicioTramoCompletado, finTramoCompletado + step, step)]
 
-
-
 def obtenerColor(color):
     if color == "Rojo":
         line_color="ff0000ff"  # Color del borde (RGBA invertido)
@@ -170,9 +172,9 @@ def agrupar_conjuntos(estructuras, conjunto_referencia):
     gruposNoLimpio = []
     grupo_actual = []
     
-    conjunto_referencia = set(estructuras) - set(conjunto_referencia)
+    estructurasNoLimpias = set(estructuras) - set(conjunto_referencia)
     for estructura in estructuras:
-        if estructura in conjunto_referencia:
+        if estructura in estructurasNoLimpias:
             grupo_actual.append(estructura)
         else:
             if grupo_actual:
@@ -187,80 +189,130 @@ def obtenerTramos(input_excel):
     hoja = "Resumen"
 
     # Leer el rango de celdas específico (columna K, filas 4 a 25)
-    df = pd.read_excel(input_excel, sheet_name=hoja, usecols="K", skiprows=3, nrows=22)
+    df = pd.read_excel(input_excel, sheet_name=hoja, usecols="K", skiprows=2, nrows=22)
     listaEstructurasTramo = df.iloc[:, 0].tolist()
-    df = pd.read_excel(input_excel, sheet_name=hoja, usecols="L", skiprows=3, nrows=22)
-    estructurasTramoLimpias = df.iloc[:, 0].tolist()
+    for i in range(len(listaEstructurasTramo)):
+        if str(listaEstructurasTramo[i]) == "nan":
+            listaEstructurasTramo[i] = listaEstructurasTramo[i]
+        else:
+            listaEstructurasTramo[i]  = listaEstructurasTramo[i].split(";")
 
-    # Imprimir la lista
-    print(f'listaEstructurasTramo: {listaEstructurasTramo[0].split(";")}')
-    print(f'estructurasTramoLimpias: {estructurasTramoLimpias[0]}')
+    df2 = pd.read_excel(input_excel, sheet_name=hoja, usecols="L", skiprows=2, nrows=22)
+    listaEstructurasTramoLimpias = df2.iloc[:, 0].tolist()
+    for i in range(len(listaEstructurasTramoLimpias)):
+        if str(listaEstructurasTramoLimpias[i]) == "nan":
+            listaEstructurasTramoLimpias[i]  = listaEstructurasTramoLimpias[i]
+        else:
+            listaEstructurasTramoLimpias[i] = listaEstructurasTramoLimpias[i].split(";")
 
-    for i in range(len(estructurasTramoLimpias)):
-        if len(estructurasTramoLimpias[i]) != 0:
-            print(f'estructurasTramoLimpias[i]: {estructurasTramoLimpias[i]}')
-            estructurasTramoLimpias[i] = estructurasTramoLimpias[i].split(";")
+    return listaEstructurasTramo, listaEstructurasTramoLimpias
 
+# Función para fusionar KMZ sin usar zipfile
+def merge_kmz(input_kmz_files, output_kmz_file):
+    # Crear un directorio temporal para trabajar con los KMZ
+    temp_dir = "temp_kmz"
+    os.makedirs(temp_dir, exist_ok=True)
 
-    return listaEstructurasTramo, estructurasTramoLimpias
+    # Crear un elemento raíz para el KML fusionado
+    merged_kml = ET.Element("kml", xmlns="http://www.opengis.net/kml/2.2")
+    merged_document = ET.SubElement(merged_kml, "Document")
+
+    for kmz_file in input_kmz_files:
+        with zipfile.ZipFile(kmz_file, 'r') as zf:
+            zf.extract("doc.kml", temp_dir)
+            kml_path = os.path.join(temp_dir, "doc.kml")
+            
+            # Leer y fusionar los archivos KML
+            tree = ET.parse(kml_path)
+            root = tree.getroot()
+            for placemark in root.findall(".//{http://www.opengis.net/kml/2.2}Placemark"):
+                merged_document.append(placemark)
+    
+    # Escribir el KML fusionado
+    merged_kml_path = os.path.join(temp_dir, "doc.kml")
+    merged_tree = ET.ElementTree(merged_kml)
+    merged_tree.write(merged_kml_path, encoding="utf-8", xml_declaration=True)
+
+    # Crear el archivo KMZ fusionado
+    with zipfile.ZipFile(output_kmz_file, 'w') as zf:
+        zf.write(merged_kml_path, "doc.kml")
+    
+    # Limpiar el directorio temporal
+    for file in os.listdir(temp_dir):
+        os.remove(os.path.join(temp_dir, file))
+    os.rmdir(temp_dir)
 
 
 
 # Datos a traer desde excel
-input_excel = "MV y PAT Actualizado ChFM - Modificado MJ.xlsx" #*** Nombre se genera desde macro
+# input_excel = "MV y PAT Actualizado ChFM - Modificado MJ.xlsx" #*** Nombre se genera desde macro
+input_excel = parametro
+df = pd.read_excel(input_excel, sheet_name="Parámetros") 
+colorTramoLimpiado = df.loc[df['Nombre Parámetro'] == 'Color Limpio (OK)', 'Valor'].values[0]
+colorTramoNoLimpiado = df.loc[df['Nombre Parámetro'] == 'Color No Limpio (P)', 'Valor'].values[0]
+anchoFranja = df.loc[df['Nombre Parámetro'] == 'Ancho de franja', 'Valor'].values[0]
 hoja_excel = "Coordenadas"
-estructurasTramo = ["SL_AS-0050", "SL_AS-0051", "SL_AS-0052", "SL_AS-0053", "SL_AS-0054", "SL_AS-0055", "SL_AS-0056", "SL_AS-0057", "SL_AS-0058", "SL_AS-0059", "SL_AS-0060", "SL_AS-0061", "SL_AS-0062", "SL_AS-0063", "SL_AS-0064", "SL_AS-0065", "SL_AS-0066", "SL_AS-0067", "SL_AS-0068", "SL_AS-0069", "SL_AS-0070", "SL_AS-0071", "SL_AS-0072", "SL_AS-0073", "SL_AS-0074", "SL_AS-0075", "SL_AS-0076", "SL_AS-0077", "SL_AS-0078", "SL_AS-0079", "SL_AS-0080", "SL_AS-0081", "SL_AS-0082", "SL_AS-0083", "SL_AS-0084", "SL_AS-0085", "SL_AS-0086", "SL_AS-0087", "SL_AS-0088", "SL_AS-0089", "SL_AS-0090", "SL_AS-0091", "SL_AS-0092", "SL_AS-0093", "SL_AS-0094", "SL_AS-0095", "SL_AS-0096", "SL_AS-0097", "SL_AS-0098", "SL_AS-0099", "SL_AS-0100"]
-estructurasTramoLimpias = ["SL_AS-0050", "SL_AS-0051", "SL_AS-0052", "SL_AS-0053", "SL_AS-0054", "SL_AS-0055", "SL_AS-0056", "SL_AS-0057", "SL_AS-0058", "SL_AS-0059",  "SL_AS-0070", "SL_AS-0071", "SL_AS-0072", "SL_AS-0073", "SL_AS-0074", "SL_AS-0075", "SL_AS-0076", "SL_AS-0077", "SL_AS-0078", "SL_AS-0079", "SL_AS-0081", "SL_AS-0082", "SL_AS-0083", "SL_AS-0084", "SL_AS-0085", "SL_AS-0086", "SL_AS-0087", "SL_AS-0088", "SL_AS-0089", "SL_AS-0096", "SL_AS-0097", "SL_AS-0098", "SL_AS-0099", "SL_AS-0100"]
-listaEstructurasTramo, estructurasTramoLimpias = obtenerTramos(input_excel)
-print(f'listaEstructurasTramo: {listaEstructurasTramo}')
-print(f'estructurasTramoLimpias: {estructurasTramoLimpias}')
-colorTramoLimpiado = "Verde" #***
-colorTramoNoLimpiado = "Rojo" #***
-anchoFranja = 100 #Ancho del poligono en metros ***
+listaEstructurasTramo, listaEstructurasTramoLimpias = obtenerTramos(input_excel)
 
-# Generar los conjuntos
-ConjuntosLimpios, ConjuntosNoLimpios = agrupar_conjuntos(estructurasTramo, estructurasTramoLimpias)
 
-if len(ConjuntosLimpios) != 0:
-    nombreTramo = ConjuntosLimpios[0][0].split("-")[0]
-    kml = Kml() #Genero KML vacio
-    for numeroConjunto in range(len(ConjuntosLimpios)):
-        route_points = []
-        if ConjuntosLimpios[numeroConjunto][-1] != estructurasTramo[-1]:
-            route_points = np.array(ConjuntosLimpios[numeroConjunto])
-            arrayEstructurasTramo = np.array(estructurasTramo)
-            indexEstructuraSiguiente = np.where(arrayEstructurasTramo == ConjuntosLimpios[numeroConjunto][-1])
-            estructuraSiguiente = estructurasTramo[indexEstructuraSiguiente[0][0] + 1]
-            route_points = np.append(route_points, estructuraSiguiente)
+for i in range(len(listaEstructurasTramo)):
+    estructurasTramo = listaEstructurasTramo[i]
+    estructurasTramoLimpias =listaEstructurasTramoLimpias[i]
+
+
+    if isinstance(estructurasTramo, list):
+        if isinstance(estructurasTramoLimpias, list):
+            # Generar los conjuntos
+            ConjuntosLimpios, ConjuntosNoLimpios = agrupar_conjuntos(estructurasTramo, estructurasTramoLimpias)
+
+            nombreTramo = ConjuntosLimpios[0][0].split("-")[0]
+
+            kml = Kml() #Genero KML vacio
+            output_kmz = nombreTramo + "-Limpio.kmz"  # Cambia esto por la ruta de salida del KMZ
+            line_color, fill_color = obtenerColor(colorTramoLimpiado)
+
+            for numeroConjunto in range(len(ConjuntosLimpios)):
+                route_points = []
+                if ConjuntosLimpios[numeroConjunto][-1] != estructurasTramo[-1]:
+                    route_points = np.array(ConjuntosLimpios[numeroConjunto])
+                    arrayEstructurasTramo = np.array(estructurasTramo)
+                    indexEstructuraSiguiente = np.where(arrayEstructurasTramo == ConjuntosLimpios[numeroConjunto][-1])
+                    estructuraSiguiente = estructurasTramo[indexEstructuraSiguiente[0][0] + 1]
+                    route_points = np.append(route_points, estructuraSiguiente)
+                else:
+                    route_points = ConjuntosLimpios[numeroConjunto]
+                kml = generate_route_from_excel(kml, input_excel, hoja_excel, route_points)
+                kml = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
+
+            kml.savekmz(output_kmz) # Guardar el archivo KMZ
+            print(f"Archivo KMZ del Tramo {nombreTramo} Limpio generado") 
+
+            kml = Kml() #Genero KML vacio
+            output_kmz = nombreTramo + "-No Limpio.kmz"  # Cambia esto por la ruta de salida del KMZ
+            line_color, fill_color = obtenerColor(colorTramoNoLimpiado)
+            
+            for numeroConjunto in range(len(ConjuntosNoLimpios)):
+                route_points = []
+                if ConjuntosNoLimpios[numeroConjunto][-1] != estructurasTramo[-1]:
+                    route_points = np.array(ConjuntosNoLimpios[numeroConjunto])
+                    arrayEstructurasTramo = np.array(estructurasTramo)
+                    indexEstructuraSiguiente = np.where(arrayEstructurasTramo == ConjuntosNoLimpios[numeroConjunto][-1])
+                    estructuraSiguiente = estructurasTramo[indexEstructuraSiguiente[0][0] + 1]
+                    route_points = np.append(route_points, estructuraSiguiente)
+                else:
+                    route_points = ConjuntosNoLimpios[numeroConjunto]
+                kml = generate_route_from_excel(kml, input_excel, hoja_excel, route_points)
+                kml = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
+            
+            kml.savekmz(output_kmz) # Guardar el archivo KMZ
+            print(f"Archivo KMZ del Tramo No Limpio generado")
         else:
-            route_points = ConjuntosLimpios[numeroConjunto]
-        output_kmz = nombreTramo + "-Limpio.kmz"  # Cambia esto por la ruta de salida del KMZ
-        kml = generate_route_from_excel(kml, input_excel, hoja_excel, route_points)
-        line_color, fill_color = obtenerColor(colorTramoLimpiado)
-        polygon_result = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
-        polygon_result.savekmz(output_kmz) # Guardar el archivo KMZ
-        print(f"Archivo KMZ del Tramo Limpiado generado") 
-else:
-    print("No existen Tramos Limpios")
+            print(f'Todos son No Limpios')
+    else:
+        print(f'No hay datos cargados de este Tramo')
+        continue
 
-if len(ConjuntosNoLimpios) != 0:
-    kml = Kml() #Genero KML vacio
-    for numeroConjunto in range(len(ConjuntosNoLimpios)):
-        route_points = []
-        if ConjuntosNoLimpios[numeroConjunto][-1] != estructurasTramo[-1]:
-            route_points = np.array(ConjuntosNoLimpios[numeroConjunto])
-            arrayEstructurasTramo = np.array(estructurasTramo)
-            indexEstructuraSiguiente = np.where(arrayEstructurasTramo == ConjuntosNoLimpios[numeroConjunto][-1])
-            estructuraSiguiente = estructurasTramo[indexEstructuraSiguiente[0][0] + 1]
-            route_points = np.append(route_points, estructuraSiguiente)
-        else:
-            route_points = ConjuntosNoLimpios[numeroConjunto]
-        output_kmz = nombreTramo + "-Limpio.kmz"  # Cambia esto por la ruta de salida del KMZ
-        kml = generate_route_from_excel(kml, input_excel, hoja_excel, route_points)
-        line_color, fill_color = obtenerColor(colorTramoNoLimpiado)
-        polygon_result = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
-        polygon_result.savekmz(output_kmz) # Guardar el archivo KMZ
-        print(f"Archivo KMZ del Tramo No Limpiado generado") 
-else:
-    print("No existen Tramos No Limpios")
-
+# #Consolidar kmz's
+# kmz_files = [f for f in os.listdir() if f.endswith('.kmz')]
+# nombreKMZOut = input_excel.split(".")[0] + ".kmz"
+# merge_kmz(kmz_files, )
