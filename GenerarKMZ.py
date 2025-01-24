@@ -1,3 +1,24 @@
+def revisarLibrerias(libraries):
+    
+    for library in libraries:
+        try:
+            __import__(library.split('.')[0])  # Intentar importar el módulo base (antes del punto)
+        except ImportError:
+            print(f"Instalando {library}...")
+            subprocess.check_call([sys.executable, "-m", "pip", "install", library])
+
+# Instalar todas las librerías requeridas
+required_libraries = [
+    "pandas",
+    "simplekml",
+    "numpy",
+    "xml.etree.ElementTree"
+    ]
+
+"""Verifica e instala las librerías necesarias."""
+
+revisarLibrerias(required_libraries)
+
 import os
 import pandas as pd
 from simplekml import Kml
@@ -108,35 +129,7 @@ def generate_route_points(nombreTramo, inicioTramoCompletado, finTramoCompletado
     step = 1 if inicioTramoCompletado <= finTramoCompletado else -1
     return [f"{nombreTramo}-{str(i).zfill(4)}" for i in range(inicioTramoCompletado, finTramoCompletado + step, step)]
 
-def revisarLibrerias():
-    try:
-        import pandas as pd
-    except ImportError:
-        print("Pandas no está instalado. Instalándolo ahora...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "pandas"])
-        print("Pandas ha sido instalado correctamente. Vuelve a ejecutar el script.")
-        import pandas
-    try:
-        import openpyxl
-    except ImportError:
-        print("openpyxl no está instalado. Instalándolo ahora...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "openpyxl"])
-        print("openpyxl ha sido instalado correctamente. Vuelve a ejecutar el script.")
-        import openpyxl
-    try:
-        import simplekml
-    except ImportError:
-        print("simplekml no está instalado. Instalándolo ahora...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "simplekml"])
-        print("simplekml ha sido instalado correctamente. Vuelve a ejecutar el script.")
-        import simplekml
-    try:
-        import xml
-    except ImportError:
-        print("xml no está instalado. Instalándolo ahora...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "xml"])
-        print("xml ha sido instalado correctamente. Vuelve a ejecutar el script.")
-        import xml
+
 
 def obtenerColor(color):
     if color == "Rojo":
@@ -194,8 +187,13 @@ def obtenerTramos(input_excel):
     print(f'listaEstructurasTramo: {listaEstructurasTramo[0].split(";")}')
     print(f'estructurasTramoLimpias: {estructurasTramoLimpias[0]}')
 
+    for i in range(len(estructurasTramoLimpias)):
+        if len(estructurasTramoLimpias[i]) != 0:
+            print(f'estructurasTramoLimpias[i]: {estructurasTramoLimpias[i]}')
+            estructurasTramoLimpias[i] = estructurasTramoLimpias[i].split(";")
 
-    return estructurasTramo, estructurasTramoLimpias
+
+    return listaEstructurasTramo, estructurasTramoLimpias
 
 revisarLibrerias()
 
@@ -204,6 +202,9 @@ input_excel = "MV y PAT Actualizado ChFM - Modificado MJ.xlsx" #*** Nombre se ge
 hoja_excel = "Coordenadas"
 estructurasTramo = ["SL_AS-0050", "SL_AS-0051", "SL_AS-0052", "SL_AS-0053", "SL_AS-0054", "SL_AS-0055", "SL_AS-0056", "SL_AS-0057", "SL_AS-0058", "SL_AS-0059", "SL_AS-0060", "SL_AS-0061", "SL_AS-0062", "SL_AS-0063", "SL_AS-0064", "SL_AS-0065", "SL_AS-0066", "SL_AS-0067", "SL_AS-0068", "SL_AS-0069", "SL_AS-0070", "SL_AS-0071", "SL_AS-0072", "SL_AS-0073", "SL_AS-0074", "SL_AS-0075", "SL_AS-0076", "SL_AS-0077", "SL_AS-0078", "SL_AS-0079", "SL_AS-0080", "SL_AS-0081", "SL_AS-0082", "SL_AS-0083", "SL_AS-0084", "SL_AS-0085", "SL_AS-0086", "SL_AS-0087", "SL_AS-0088", "SL_AS-0089", "SL_AS-0090", "SL_AS-0091", "SL_AS-0092", "SL_AS-0093", "SL_AS-0094", "SL_AS-0095", "SL_AS-0096", "SL_AS-0097", "SL_AS-0098", "SL_AS-0099", "SL_AS-0100"]
 estructurasTramoLimpias = ["SL_AS-0050", "SL_AS-0051", "SL_AS-0052", "SL_AS-0053", "SL_AS-0054", "SL_AS-0055", "SL_AS-0056", "SL_AS-0057", "SL_AS-0058", "SL_AS-0059",  "SL_AS-0070", "SL_AS-0071", "SL_AS-0072", "SL_AS-0073", "SL_AS-0074", "SL_AS-0075", "SL_AS-0076", "SL_AS-0077", "SL_AS-0078", "SL_AS-0079", "SL_AS-0081", "SL_AS-0082", "SL_AS-0083", "SL_AS-0084", "SL_AS-0085", "SL_AS-0086", "SL_AS-0087", "SL_AS-0088", "SL_AS-0089", "SL_AS-0096", "SL_AS-0097", "SL_AS-0098", "SL_AS-0099", "SL_AS-0100"]
+listaEstructurasTramo, estructurasTramoLimpias = obtenerTramos(input_excel)
+print(f'listaEstructurasTramo: {listaEstructurasTramo}')
+print(f'estructurasTramoLimpias: {estructurasTramoLimpias}')
 colorTramoLimpiado = "Verde" #***
 colorTramoNoLimpiado = "Rojo" #***
 anchoFranja = 100 #Ancho del poligono en metros ***
