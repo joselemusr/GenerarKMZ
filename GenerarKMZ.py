@@ -1,3 +1,5 @@
+import os
+
 def revisarLibrerias(libraries):
     
     """Verifica e instala las librerías necesarias utilizando os."""
@@ -27,7 +29,6 @@ required_libraries = [
 
 revisarLibrerias(required_libraries)
 
-import os
 import pandas as pd
 from simplekml import Kml
 import xml.etree.ElementTree as ET
