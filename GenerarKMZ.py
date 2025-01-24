@@ -2,10 +2,15 @@ def revisarLibrerias(libraries):
     
     for library in libraries:
         try:
-            __import__(library.split('.')[0])  # Intentar importar el módulo base (antes del punto)
+            __import__(library)  # Intentar importar el módulo
         except ImportError:
             print(f"Instalando {library}...")
             subprocess.check_call([sys.executable, "-m", "pip", "install", library])
+        try:
+            __import__(library)  # Verificar nuevamente la importación
+            print(f"{library} importado correctamente.")
+        except ImportError:
+            print(f"Error: No se pudo importar {library} después de la instalación.")
 
 # Instalar todas las librerías requeridas
 required_libraries = [
