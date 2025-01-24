@@ -204,7 +204,7 @@ def obtenerTramos(input_excel):
 
     return listaEstructurasTramo, estructurasTramoLimpias
 
-revisarLibrerias()
+
 
 # Datos a traer desde excel
 input_excel = "MV y PAT Actualizado ChFM - Modificado MJ.xlsx" #*** Nombre se genera desde macro
