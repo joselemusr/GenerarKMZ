@@ -9,9 +9,9 @@ import shutil
 import math
 import numpy as np
 
-def generate_route_from_excel(kml, input_excel_path, route_points):
+def generate_route_from_excel(kml, input_excel_path, hoja_excel, route_points):
     # Leer el archivo Excel
-    df = pd.read_excel(input_excel_path)
+    df = pd.read_excel(input_excel_path,sheet_name=hoja_excel)
 
 
     # Agregar puntos al KML
@@ -39,9 +39,9 @@ def generate_route_from_excel(kml, input_excel_path, route_points):
 
     return kml
 
-def generate_polygon_from_route(kml, route_points, input_excel_path, width_meters, line_color, fill_color):
+def generate_polygon_from_route(kml, route_points, input_excel_path, hoja_excel, width_meters, line_color, fill_color):
     # Leer el archivo Excel
-    df = pd.read_excel(input_excel_path)
+    df = pd.read_excel(input_excel_path,sheet_name=hoja_excel)
 
     # Extraer las coordenadas de los puntos de la ruta
     route_coords = []
@@ -181,23 +181,35 @@ def agrupar_conjuntos(estructuras, conjunto_referencia):
 
     return gruposLimpio, gruposNoLimpio
 
+def obtenerTramos(input_excel):
+    hoja = "Resumen"
+
+    # Leer el rango de celdas específico (columna K, filas 4 a 25)
+    df = pd.read_excel(input_excel, sheet_name=hoja, usecols="K", skiprows=3, nrows=22)
+    listaEstructurasTramo = df.iloc[:, 0].tolist()
+    df = pd.read_excel(input_excel, sheet_name=hoja, usecols="L", skiprows=3, nrows=22)
+    estructurasTramoLimpias = df.iloc[:, 0].tolist()
+
+    # Imprimir la lista
+    print(f'listaEstructurasTramo: {listaEstructurasTramo[0].split(";")}')
+    print(f'estructurasTramoLimpias: {estructurasTramoLimpias[0]}')
+
+
+    return estructurasTramo, estructurasTramoLimpias
 
 revisarLibrerias()
 
-# Generar Excel con datos Brutos desde el KMZ "kmz_file"
+# Datos a traer desde excel
 input_excel = "MV y PAT Actualizado ChFM - Modificado MJ.xlsx" #*** Nombre se genera desde macro
-
+hoja_excel = "Coordenadas"
 estructurasTramo = ["SL_AS-0050", "SL_AS-0051", "SL_AS-0052", "SL_AS-0053", "SL_AS-0054", "SL_AS-0055", "SL_AS-0056", "SL_AS-0057", "SL_AS-0058", "SL_AS-0059", "SL_AS-0060", "SL_AS-0061", "SL_AS-0062", "SL_AS-0063", "SL_AS-0064", "SL_AS-0065", "SL_AS-0066", "SL_AS-0067", "SL_AS-0068", "SL_AS-0069", "SL_AS-0070", "SL_AS-0071", "SL_AS-0072", "SL_AS-0073", "SL_AS-0074", "SL_AS-0075", "SL_AS-0076", "SL_AS-0077", "SL_AS-0078", "SL_AS-0079", "SL_AS-0080", "SL_AS-0081", "SL_AS-0082", "SL_AS-0083", "SL_AS-0084", "SL_AS-0085", "SL_AS-0086", "SL_AS-0087", "SL_AS-0088", "SL_AS-0089", "SL_AS-0090", "SL_AS-0091", "SL_AS-0092", "SL_AS-0093", "SL_AS-0094", "SL_AS-0095", "SL_AS-0096", "SL_AS-0097", "SL_AS-0098", "SL_AS-0099", "SL_AS-0100"]
 estructurasTramoLimpias = ["SL_AS-0050", "SL_AS-0051", "SL_AS-0052", "SL_AS-0053", "SL_AS-0054", "SL_AS-0055", "SL_AS-0056", "SL_AS-0057", "SL_AS-0058", "SL_AS-0059",  "SL_AS-0070", "SL_AS-0071", "SL_AS-0072", "SL_AS-0073", "SL_AS-0074", "SL_AS-0075", "SL_AS-0076", "SL_AS-0077", "SL_AS-0078", "SL_AS-0079", "SL_AS-0081", "SL_AS-0082", "SL_AS-0083", "SL_AS-0084", "SL_AS-0085", "SL_AS-0086", "SL_AS-0087", "SL_AS-0088", "SL_AS-0089", "SL_AS-0096", "SL_AS-0097", "SL_AS-0098", "SL_AS-0099", "SL_AS-0100"]
-
-
-
-# Generar los conjuntos
-ConjuntosLimpios, ConjuntosNoLimpios = agrupar_conjuntos(estructurasTramo, estructurasTramoLimpias)
 colorTramoLimpiado = "Verde" #***
 colorTramoNoLimpiado = "Rojo" #***
 anchoFranja = 100 #Ancho del poligono en metros ***
 
+# Generar los conjuntos
+ConjuntosLimpios, ConjuntosNoLimpios = agrupar_conjuntos(estructurasTramo, estructurasTramoLimpias)
 
 if len(ConjuntosLimpios) != 0:
     nombreTramo = ConjuntosLimpios[0][0].split("-")[0]
@@ -213,9 +225,9 @@ if len(ConjuntosLimpios) != 0:
         else:
             route_points = ConjuntosLimpios[numeroConjunto]
         output_kmz = nombreTramo + "-Limpio.kmz"  # Cambia esto por la ruta de salida del KMZ
-        kml = generate_route_from_excel(kml, input_excel, route_points)
+        kml = generate_route_from_excel(kml, input_excel, hoja_excel, route_points)
         line_color, fill_color = obtenerColor(colorTramoLimpiado)
-        polygon_result = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
+        polygon_result = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
         polygon_result.savekmz(output_kmz) # Guardar el archivo KMZ
         print(f"Archivo KMZ del Tramo Limpiado generado") 
 else:
@@ -234,9 +246,9 @@ if len(ConjuntosNoLimpios) != 0:
         else:
             route_points = ConjuntosNoLimpios[numeroConjunto]
         output_kmz = nombreTramo + "-Limpio.kmz"  # Cambia esto por la ruta de salida del KMZ
-        kml = generate_route_from_excel(kml, input_excel, route_points)
+        kml = generate_route_from_excel(kml, input_excel, hoja_excel, route_points)
         line_color, fill_color = obtenerColor(colorTramoNoLimpiado)
-        polygon_result = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
+        polygon_result = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
         polygon_result.savekmz(output_kmz) # Guardar el archivo KMZ
         print(f"Archivo KMZ del Tramo No Limpiado generado") 
 else:
