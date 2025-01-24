@@ -1,11 +1,12 @@
 def revisarLibrerias(libraries):
     
+    """Verifica e instala las librerías necesarias utilizando os."""
     for library in libraries:
         try:
             __import__(library)  # Intentar importar el módulo
         except ImportError:
             print(f"Instalando {library}...")
-            subprocess.check_call([sys.executable, "-m", "pip", "install", library])
+            os.system(f"pip install {library}")
         try:
             __import__(library)  # Verificar nuevamente la importación
             print(f"{library} importado correctamente.")
@@ -16,6 +17,8 @@ def revisarLibrerias(libraries):
 required_libraries = [
     "pandas",
     "simplekml",
+    "math",
+    "subprocess.run"
     "numpy",
     "xml.etree.ElementTree"
     ]
