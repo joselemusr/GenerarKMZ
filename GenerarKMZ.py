@@ -154,9 +154,6 @@ def obtenerColor(color):
     if color == "Azul":
         line_color="ffff0000"  # Color del borde (RGBA invertido)
         fill_color="88ff0000"  # Color de relleno (RGBA invertido)
-    if color == "Amarillo":
-        line_color = "ff00ffff"  # Color del borde (RGBA invertido)
-        fill_color = "8800ffff"  # Color de relleno (RGBA invertido)
     return line_color, fill_color
 
 # Función para agrupar conjuntos correlativos
