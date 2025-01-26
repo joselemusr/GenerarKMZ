@@ -286,7 +286,7 @@ nombreArchivoKMZ = os.path.splitext(os.path.basename(input_excel))[0]
 output_kmz = os.path.join(rutaActual, nombreArchivoKMZ)
 print(f'output_kmz: {output_kmz + ".kmz"}')
 
-kml.savekmz(output_kmz) # Guardar el archivo KMZ
+kml.savekmz(output_kmz + ".kmz") # Guardar el archivo KMZ
 
 
 # #Consolidar kmz's
