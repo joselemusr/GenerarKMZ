@@ -283,7 +283,8 @@ for i in range(len(listaEstructurasTramo)):
 print(f'rutaActual: {rutaActual}')
 print(f'input_excel: {input_excel}')
 nombreArchivoKMZ = os.path.splitext(os.path.basename(input_excel))[0]
-output_kmz = os.path.join(rutaActual, nombreArchivoKMZ) + ".kmz"
+nombreArchivoKMZ = nombreArchivoKMZ + ".kmz"
+output_kmz = os.path.join(rutaActual, nombreArchivoKMZ)
 print(f'output_kmz: {output_kmz}')
 
 kml.savekmz(output_kmz) # Guardar el archivo KMZ
