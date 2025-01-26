@@ -208,47 +208,13 @@ def obtenerTramos(input_excel):
 
     return listaEstructurasTramo, listaEstructurasTramoLimpias
 
-# Función para fusionar KMZ sin usar zipfile
-def merge_kmz(input_kmz_files, output_kmz_file):
-    # Crear un directorio temporal para trabajar con los KMZ
-    temp_dir = "temp_kmz"
-    os.makedirs(temp_dir, exist_ok=True)
-
-    # Crear un elemento raíz para el KML fusionado
-    merged_kml = ET.Element("kml", xmlns="http://www.opengis.net/kml/2.2")
-    merged_document = ET.SubElement(merged_kml, "Document")
-
-    for kmz_file in input_kmz_files:
-        with zipfile.ZipFile(kmz_file, 'r') as zf:
-            zf.extract("doc.kml", temp_dir)
-            kml_path = os.path.join(temp_dir, "doc.kml")
-            
-            # Leer y fusionar los archivos KML
-            tree = ET.parse(kml_path)
-            root = tree.getroot()
-            for placemark in root.findall(".//{http://www.opengis.net/kml/2.2}Placemark"):
-                merged_document.append(placemark)
-    
-    # Escribir el KML fusionado
-    merged_kml_path = os.path.join(temp_dir, "doc.kml")
-    merged_tree = ET.ElementTree(merged_kml)
-    merged_tree.write(merged_kml_path, encoding="utf-8", xml_declaration=True)
-
-    # Crear el archivo KMZ fusionado
-    with zipfile.ZipFile(output_kmz_file, 'w') as zf:
-        zf.write(merged_kml_path, "doc.kml")
-    
-    # Limpiar el directorio temporal
-    for file in os.listdir(temp_dir):
-        os.remove(os.path.join(temp_dir, file))
-    os.rmdir(temp_dir)
-
 
 
 # Datos a traer desde excel
 # input_excel = "MV y PAT Actualizado ChFM - Modificado MJ.xlsx" #*** Nombre se genera desde macro
 input_excel = parametro
 df = pd.read_excel(input_excel, sheet_name="Parámetros") 
+rutaActual = df.loc[df['Nombre Parámetro'] == 'Ruta Actual', 'Valor'].values[0]
 colorTramoLimpiado = df.loc[df['Nombre Parámetro'] == 'Color Limpio (OK)', 'Valor'].values[0]
 colorTramoNoLimpiado = df.loc[df['Nombre Parámetro'] == 'Color No Limpio (P)', 'Valor'].values[0]
 anchoFranja = df.loc[df['Nombre Parámetro'] == 'Ancho de franja', 'Valor'].values[0]
@@ -313,7 +279,7 @@ for i in range(len(listaEstructurasTramo)):
     else:
         print(f'No hay datos cargados de este Tramo')
         continue
-output_kmz = input_excel.split(".")[0] + ".kmz"
+output_kmz = rutaActual + "//" + input_excel.split(".")[0] + ".kmz"
 kml.savekmz(output_kmz) # Guardar el archivo KMZ
 
 
