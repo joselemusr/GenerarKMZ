@@ -43,17 +43,17 @@ if len(sys.argv) > 1:
 else:
     print("No se proporcionaron parámetros. Usa: python script.py <parametro>")
 
-def generate_route_from_excel(kml, input_excel_path, hoja_excel, route_points):
+def generate_route_from_excel(kml, nombreTramo, input_excel_path, hoja_excel, route_points):
     # Leer el archivo Excel
     df = pd.read_excel(input_excel_path,sheet_name=hoja_excel)
-
+    folder = kml.newfolder(name=nombreTramo + "- Points")  # Nombre de la carpeta en el KML
 
     # Agregar puntos al KML
     for index, row in df.iterrows():
         if row['Name'] in route_points:
             coordinates = row['Coordinates']
             lon, lat, *alt = map(float, coordinates.split(","))
-            point = kml.newpoint(name=row['Name'], coords=[(lon, lat)])
+            point = folder.newpoint(name=row['Name'], coords=[(lon, lat)])
             point.description = row.get('Description', 'No description')
 
     # Crear una ruta entre los puntos definidos
@@ -66,14 +66,14 @@ def generate_route_from_excel(kml, input_excel_path, hoja_excel, route_points):
             route_coords.append((lon, lat))
 
     if route_coords:
-        linestring = kml.newlinestring(name="Route")
+        linestring = folder.newlinestring(name="Route")
         linestring.coords = route_coords
         linestring.style.linestyle.width = 3
         linestring.style.linestyle.color = 'ff0000ff'  # Red line
 
     return kml
 
-def generate_polygon_from_route(kml, route_points, input_excel_path, hoja_excel, width_meters, line_color, fill_color):
+def generate_polygon_from_route(kml, nombreTramo, route_points, input_excel_path, hoja_excel, width_meters, line_color, fill_color):
     # Leer el archivo Excel
     df = pd.read_excel(input_excel_path,sheet_name=hoja_excel)
 
@@ -126,7 +126,8 @@ def generate_polygon_from_route(kml, route_points, input_excel_path, hoja_excel,
         polygon_coords.insert(0, (lon - perp_dx * meters_to_deg_lon, lat - perp_dy * meters_to_deg_lat))  # Lado izquierdo
 
     # Crear el polígono
-    polygon = kml.newpolygon(name="Route Polygon")
+    folder = kml.newfolder(name=nombreTramo + "_Polygon")  # Nombre de la carpeta en el KML
+    polygon = folder.newpolygon(name= nombreTramo + "_Polygon")
     polygon.outerboundaryis.coords = polygon_coords
     polygon.style.polystyle.color = fill_color  # Color de relleno (formato ABGR)
     polygon.style.polystyle.fill = 1  # Activar el relleno
@@ -254,6 +255,7 @@ anchoFranja = df.loc[df['Nombre Parámetro'] == 'Ancho de franja', 'Valor'].valu
 hoja_excel = "Coordenadas"
 listaEstructurasTramo, listaEstructurasTramoLimpias = obtenerTramos(input_excel)
 
+kml = Kml() #Genero KML vacio
 
 for i in range(len(listaEstructurasTramo)):
     estructurasTramo = listaEstructurasTramo[i]
@@ -267,7 +269,6 @@ for i in range(len(listaEstructurasTramo)):
 
             nombreTramo = ConjuntosLimpios[0][0].split("-")[0]
 
-            kml = Kml() #Genero KML vacio
             output_kmz = nombreTramo + "-Limpio.kmz"  # Cambia esto por la ruta de salida del KMZ
             line_color, fill_color = obtenerColor(colorTramoLimpiado)
 
@@ -281,13 +282,14 @@ for i in range(len(listaEstructurasTramo)):
                     route_points = np.append(route_points, estructuraSiguiente)
                 else:
                     route_points = ConjuntosLimpios[numeroConjunto]
-                kml = generate_route_from_excel(kml, input_excel, hoja_excel, route_points)
-                kml = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
+                nombreTramokml = nombreTramo + "-Limpio"
+                kml = generate_route_from_excel(kml, nombreTramokml, input_excel, hoja_excel, route_points)
+                kml = generate_polygon_from_route(kml, nombreTramokml, route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
 
-            kml.savekmz(output_kmz) # Guardar el archivo KMZ
-            print(f"Archivo KMZ del Tramo {nombreTramo} Limpio generado") 
+            # kml.savekmz(output_kmz) # Guardar el archivo KMZ
+            # print(f"Archivo KMZ del Tramo {nombreTramo} Limpio generado") 
 
-            kml = Kml() #Genero KML vacio
+            # kml = Kml() #Genero KML vacio
             output_kmz = nombreTramo + "-No Limpio.kmz"  # Cambia esto por la ruta de salida del KMZ
             line_color, fill_color = obtenerColor(colorTramoNoLimpiado)
             
@@ -301,16 +303,19 @@ for i in range(len(listaEstructurasTramo)):
                     route_points = np.append(route_points, estructuraSiguiente)
                 else:
                     route_points = ConjuntosNoLimpios[numeroConjunto]
-                kml = generate_route_from_excel(kml, input_excel, hoja_excel, route_points)
-                kml = generate_polygon_from_route(kml,route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
+                nombreTramokml = nombreTramo + "-No Limpio"
+                kml = generate_route_from_excel(kml, nombreTramokml, input_excel, hoja_excel, route_points)
+                kml = generate_polygon_from_route(kml,nombreTramokml, route_points, input_excel_path=input_excel, hoja_excel=hoja_excel, width_meters=anchoFranja, line_color = line_color, fill_color = fill_color)
             
-            kml.savekmz(output_kmz) # Guardar el archivo KMZ
-            print(f"Archivo KMZ del Tramo No Limpio generado")
+            # print(f"Archivo KMZ del Tramo No Limpio generado")
         else:
             print(f'Todos son No Limpios')
     else:
         print(f'No hay datos cargados de este Tramo')
         continue
+output_kmz = input_excel.split(".")[0] + ".kmz"
+kml.savekmz(output_kmz) # Guardar el archivo KMZ
+
 
 # #Consolidar kmz's
 # kmz_files = [f for f in os.listdir() if f.endswith('.kmz')]
