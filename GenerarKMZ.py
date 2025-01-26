@@ -279,7 +279,9 @@ for i in range(len(listaEstructurasTramo)):
     else:
         print(f'No hay datos cargados de este Tramo')
         continue
-output_kmz = rutaActual + "//" + input_excel.split(".")[0] + ".kmz"
+# output_kmz = rutaActual + "//" + input_excel.split(".")[0] + ".kmz"
+output_kmz = os.path.join(rutaActual, input_excel.split(".")[0] + ".kmz")
+
 kml.savekmz(output_kmz) # Guardar el archivo KMZ
 
 
