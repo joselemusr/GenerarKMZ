@@ -21,7 +21,8 @@ required_libraries = [
     "simplekml",
     "math",
     "numpy",
-    "xml.etree.ElementTree"
+    "xml.etree.ElementTree",
+    "openpyxl"
     ]
 
 """Verifica e instala las librerías necesarias."""
@@ -283,8 +284,7 @@ for i in range(len(listaEstructurasTramo)):
 print(f'rutaActual: {rutaActual}')
 print(f'input_excel: {input_excel}')
 nombreArchivoKMZ = os.path.splitext(os.path.basename(input_excel))[0]
-nombreArchivoKMZ = nombreArchivoKMZ + ".kmz"
-output_kmz = os.path.join(rutaActual, nombreArchivoKMZ)
+output_kmz = os.path.join(rutaActual, nombreArchivoKMZ) + ".kmz"
 print(f'output_kmz: {output_kmz}')
 
 kml.savekmz(output_kmz) # Guardar el archivo KMZ
